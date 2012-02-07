@@ -1,0 +1,7 @@
+#ifndef NDEBUG
+	#define debug cout
+#else
+	#define debug if (0) cerr
+#endif
+
+#include <cassert>

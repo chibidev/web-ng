@@ -1,0 +1,186 @@
+#include <streambuf>
+#include <sys/types.h>
+#include <unistd.h>
+#include <errno.h>
+#include <string.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <netdb.h>
+#include <sys/un.h>
+
+#include <iostream>
+#include <vector>
+
+#include "socket"
+
+namespace std {
+
+template <typename address_type, typename charT, typename socket_type = socket<address_type>, typename traits = char_traits<charT> >
+class net_streambuf : public basic_streambuf<charT, traits> {
+
+	public:
+		explicit net_streambuf(socket_type& s, size_t buffer_size = 4096) : _socket(s) {
+			/*_inputbuffer.reserve(buffer_size);
+			_PBeg = _PCur = 0, _PLength = 0;
+			_GBeg = _GCur = _inputbuffer.begin(), _GLength = 0;
+			_Init(&_GBeg, &_GCur, &_GLength, &_PBeg, &_PCur, &_PLength);*/
+
+			_inputbuffer.reserve(buffer_size - 1);
+			_outputbuffer.reserve(buffer_size - 1);
+
+			this->setg(0,0,0);
+			this->setp(&_outputbuffer[0], &_outputbuffer[0] + buffer_size - 1);
+		}
+
+		
+
+	protected:
+		//virtual int uflow() {
+		//}
+
+		virtual int underflow() {
+			//size_t length = recv(_socket, &_inputbuffer[0], _inputbuffer.capacity(), 0);
+			size_t length = _socket.recv(&_inputbuffer[0], _inputbuffer.capacity());
+
+			this->setg(&_inputbuffer[0], &_inputbuffer[0], &_inputbuffer[0] + _inputbuffer.capacity());
+
+			if (length == 0) {
+				return traits::eof();
+			}
+
+			return traits::not_eof(_inputbuffer[0]);
+		}
+
+		virtual int overflow(int c = traits::eof()) {
+			charT* ibegin = &_outputbuffer[0];
+			charT* iend = this->pptr();
+
+			this->setp(ibegin, ibegin + _outputbuffer.capacity() + 1);
+
+			if (!traits::eq_int_type(c, traits::eof())) {
+				*iend++ = traits::to_char_type(c);
+			}
+
+			size_t length = iend - ibegin;
+
+			//send(_socket, ibegin, length, 0);
+
+			_socket.send(ibegin, length);
+
+			return traits::not_eof(c);
+		}
+
+		virtual int sync() {
+			return traits::eq_int_type(overflow(traits::eof()), traits::eof()) ? -1 : 0;
+		}
+
+	private:
+		charT* _PBeg, * _Pcur, * _GBeg, * _GCur;
+		int _PLenght, _GLength;
+
+		vector<charT> _inputbuffer;
+		vector<charT> _outputbuffer;
+
+		//int& _socket;
+		socket_type& _socket;
+};
+
+template <typename address_type, typename charT, typename socket_type = socket<address_type>, typename traits = char_traits<charT> >
+class basic_socketstream : public basic_iostream<charT, traits> {
+	public:
+		//explicit netstream() : basic_iostream<charT, traits>(&_buffer), _socket(0) {
+		//}
+
+		explicit basic_socketstream(/*const char* host, const char* port*/) : basic_iostream<charT, traits>(&_buffer), _buffer(_socket) {
+			/*
+			struct addrinfo hints;
+			memset(&hints, 0, sizeof hints);
+			hints.ai_family = AF_UNSPEC;
+			hints.ai_socktype = SOCK_STREAM;
+			getaddrinfo(host, port, &hints, &res);
+
+			connect(_socket, res->ai_addr, res->ai_addrlen);
+			*/
+		}
+
+
+		virtual ~basic_socketstream() {
+			//close(_socket);
+			//freeaddrinfo(res);
+		}
+
+	protected:
+
+		explicit basic_socketstream(const basic_socketstream&) {
+		}
+
+	
+		//struct sockaddr address;
+		socket_type _socket;
+		net_streambuf<address_type, charT, socket_type, traits> _buffer;
+};
+
+template <typename charT, typename traits = char_traits<charT> >
+class basic_inet4stream : public basic_socketstream<inet4_address, charT, socket<inet4_address>, traits> {
+	public:
+		explicit basic_inet4stream(const char* host, size_t port) : basic_socketstream<inet4_address, charT, socket<inet4_address>, traits>(/*this->_socket*/) {
+
+			/*struct addrinfo hints;
+			memset(&hints, 0, sizeof hints);
+			hints.ai_family = AF_UNSPEC;
+			hints.ai_socktype = SOCK_STREAM;
+			getaddrinfo(host, port, &hints, &res);*/
+
+			/*struct sockaddr_in* addr = (struct sockaddr_in*) &this->address;
+			addr->sin_family = AF_INET;
+			addr->sin_port = htons(port);
+			addr->sin_addr.s_addr = inet_addr(host);
+			
+			memset(&(addr->sin_zero), 0, 8);
+			//bzero(&(addr->sin_zero), 8);
+			
+
+			this->_socket = socket(AF_INET, SOCK_STREAM, 0);
+
+			connect(this->_socket, &this->address, sizeof(struct sockaddr));*/
+
+			this->_socket.connect(inet4_address(host, port));
+		}
+
+		//virtual ~basic_inet4stream() {
+		//}
+};
+
+typedef basic_inet4stream<char> inet4stream;
+
+
+
+// BROKEN
+/*
+template <typename charT, typename traits = char_traits<charT> >
+class basic_unixstream : public basic_socketstream<charT, traits> {
+	public:
+		explicit basic_unixstream(const char* path) : basic_socketstream<charT, traits>() {
+			memset(&unix_address, 0, sizeof(sockaddr_un));
+			unix_address.sun_family = AF_UNIX;
+			strcpy(unix_address.sun_path, path);
+			
+			int length = strlen(unix_address.sun_path) + sizeof(unix_address.sun_family);
+			
+			this->_socket = socket(AF_UNIX, SOCK_STREAM, 0);
+
+			connect(this->_socket, (struct sockaddr*) &unix_address, length);
+		}
+
+	protected:
+		struct sockaddr_un unix_address;
+};
+
+typedef basic_unixstream<char> unixstream;*/
+
+} // namespace std
+
+//typedef basic_inetstream<wchar> winetstream;
+

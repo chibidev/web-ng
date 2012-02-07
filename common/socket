@@ -1,0 +1,259 @@
+#pragma once
+#ifndef __STD__SOCKET__HPP__
+#define __STD__SOCKET__HPP__
+
+#include <list>
+#include <cstdio>
+
+namespace std {
+
+/*
+template<int address_family = AF_UNSPEC, int socket_type = SOCK_STREAM>
+list<basic_sockaddr> lookup_name(const char* host, const char* service = 0) {
+	if (service) {
+		// inet address
+		struct addrinfo hints;
+		struct addrinfo* address
+		memset(&hints, 0, sizeof hints);
+
+		hints.ai_family = address_family;
+		hints.ai_socktype = socket_type;
+		hints.ai_flags = AI_PASSIVE;
+
+		if ((int status = getaddrinfo(host, service, &hints, &address))) {
+			//TODO error handling
+		}
+
+		freeaddrinfo(address);
+
+		return 0;
+	}
+	// unix address
+}
+*/
+
+
+class basic_sockaddr {
+	public:
+		basic_sockaddr(struct sockaddr* __address) : _address(__address) {
+		}
+
+		operator sockaddr*() {
+			return _address;
+		}
+
+	protected:
+		struct sockaddr* _address;
+};
+
+class inet4_address : public basic_sockaddr {
+	public:
+		static const int family;
+
+		inet4_address(const char* __host, int __port) : basic_sockaddr((struct sockaddr*) &_inet_addr) {
+			_inet_addr.sin_family = family;
+			_inet_addr.sin_port = htons(__port);
+
+			struct hostent* host = gethostbyname(__host);
+
+			//inet_pton(AF_INET, host, &_inet_addr.sin_addr);
+
+			_inet_addr.sin_addr = *((struct in_addr*) host->h_addr);
+
+			memset(_inet_addr.sin_zero, 0, sizeof _inet_addr.sin_zero);
+		}
+
+		inet4_address(const inet4_address& __address) : basic_sockaddr((struct sockaddr*) &_inet_addr) {
+			memcpy(&_inet_addr, &__address._inet_addr, sizeof(struct sockaddr_in));
+		}
+
+		~inet4_address() {
+		}
+
+		size_t length() const {
+			return sizeof(struct sockaddr_in);
+		}
+
+	protected:
+		struct sockaddr_in _inet_addr;
+};
+
+const int inet4_address::family = AF_INET;
+
+/*
+class inet6_address : public basic_sockaddr {
+	public:
+		inet6_address(const char* host, const char* proto) {
+		}
+
+		~inet6_address() {
+		}
+	protected:
+		
+};
+*/
+
+class unix_address : public basic_sockaddr {
+	public:
+		unix_address(const char* path) : basic_sockaddr((struct sockaddr*) &_unix_addr) {
+			memset(&_unix_addr, 0, sizeof _unix_addr);
+			
+			_unix_addr.sun_family = AF_UNIX;
+			//TODO what if strlen(path) > sizeof _unix_addr.sun_path???
+			strcpy(_unix_addr.sun_path, path);
+		}
+	protected:
+		struct sockaddr_un _unix_addr;
+};
+
+
+
+
+template<typename address_type, int socket_type = SOCK_STREAM>
+class basic_socket {
+	public:
+		basic_socket() : _socket(-1), _local_address(0) {
+			_socket = socket(address_type::family, socket_type, 0);
+			if (_socket < 0) {
+				//TODO error handling
+			}
+		}
+
+		virtual ~basic_socket() {
+			if (_socket > 0) close();
+		}
+
+		void bind(const address_type& address) {
+			//if ((int e = bind(_socket, _local_address->ai_addr, _local_addres->ai_addrlen)) == -1) {
+			
+			int e;
+			if ((e = bind(_socket, static_cast<struct sockaddr*>(_local_address), sizeof(struct sockaddr))) == -1) {
+				//TODO error handling
+			}
+		}
+
+		virtual void close() {
+			int e;
+
+			if ((e = ::close(_socket))) {
+				//TODO error handling
+			}
+
+			if (_local_address) delete _local_address;
+
+			//if (_local_address) freeaddrinfo(_local_address);
+			//if (_remote_address) freeaddrinfo(_remote_address);
+
+			//_local_address = _remote_address = 0;
+		}
+
+	protected:
+		basic_socket(const basic_socket&) {
+		}
+
+		int _socket;
+		address_type* _local_address;
+};
+
+template<typename address_type, int socket_type = SOCK_STREAM>
+class socket : public basic_socket<address_type, socket_type> {
+	public:
+		socket() : _remote_address(0) {
+		}
+
+		/*socket(const char* host, const char* proto, bool connect = true) : _socket(-1), _local_address(0), _remote_address(0) {
+			set_address(host, proto);
+			if (connect) connect();
+		}*/
+
+		socket(const address_type& address) {
+			connect(address);
+		}
+		
+		void connect(const address_type& address) {
+			_remote_address = new address_type(address);
+
+			//int e = ::connect(this->_socket, static_cast<struct sockaddr*>(_remote_address), sizeof(struct sockaddr));
+			int e = ::connect(this->_socket, static_cast<struct sockaddr*>(*_remote_address), _remote_address->length());
+
+
+			if (e < 0) {
+				//TODO error handling
+
+				::perror("connect error");
+			}
+		}
+
+		void close() {
+			basic_socket<address_type, socket_type>::close();
+			if (_remote_address) delete _remote_address;
+		}
+		
+		int shutdown() {
+			return -1;
+		}
+
+		template<typename buffer_type>
+		int recv(buffer_type buffer, size_t length) {
+			int e;
+			if ((e = ::recv(this->_socket, &buffer[0], length, 0)) < 0) {
+				//TODO error handling
+			}
+
+			return e;
+		}
+
+		template<typename buffer_type>
+		int send(const buffer_type buffer, size_t length) {
+			int e;
+
+			if ((e = ::send(this->_socket, &buffer[0], length, 0)) < 0) {
+				//TODO error handling
+			}
+
+			return e;
+		}
+		
+	protected:
+		socket(const socket&);
+
+		//struct addrinfo* _local_address;
+		//struct addrinfo* _remote_address;
+
+		address_type* _remote_address;
+};
+
+// @see http://msdn.microsoft.com/en-us/library/aa365590.aspx
+//class unix_socket : public socket {
+//};
+
+template<typename address_type, typename socket_type = socket<address_type> >
+class server_socket : public basic_socket<address_type> {
+	public:
+		server_socket() {
+		}
+
+		int listen(int backlog = 10) {
+			int e = listen(this->_socket, backlog);
+			if (e == -1) {
+				//TODO error handling
+			}
+			return e;
+		}
+
+		socket_type* accept() {
+			struct sockaddr_storage client_address;
+			socklen_t address_size = sizeof client_address;
+
+			int client_fd = accept(this->_socket, &client_address, &address_size);
+
+			socket_type* client_socket = new socket_type();
+		}
+
+	protected:
+		server_socket(const server_socket&);
+};
+
+}
+
+#endif
