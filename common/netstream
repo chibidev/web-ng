@@ -93,7 +93,7 @@ class basic_socketstream : public basic_iostream<charT, traits> {
 		//explicit netstream() : basic_iostream<charT, traits>(&_buffer), _socket(0) {
 		//}
 
-		explicit basic_socketstream(/*const char* host, const char* port*/) : basic_iostream<charT, traits>(&_buffer), _buffer(_socket) {
+		explicit basic_socketstream(socket_type& __socket) : basic_iostream<charT, traits>(&_buffer), _socket(__socket), _buffer(_socket) {
 			/*
 			struct addrinfo hints;
 			memset(&hints, 0, sizeof hints);
@@ -118,14 +118,15 @@ class basic_socketstream : public basic_iostream<charT, traits> {
 
 	
 		//struct sockaddr address;
-		socket_type _socket;
+		socket_type& _socket;
 		net_streambuf<address_type, charT, socket_type, traits> _buffer;
 };
 
 template <typename charT, typename traits = char_traits<charT> >
 class basic_inet4stream : public basic_socketstream<inet4_address, charT, socket<inet4_address>, traits> {
 	public:
-		explicit basic_inet4stream(const char* host, size_t port) : basic_socketstream<inet4_address, charT, socket<inet4_address>, traits>(/*this->_socket*/) {
+		explicit basic_inet4stream(socket<inet4_address>& __socket) : basic_socketstream<inet4_address, charT, socket<inet4_address>, traits>(__socket) {
+		//explicit basic_inet4stream(const char* host, size_t port) : basic_socketstream<inet4_address, charT, socket<inet4_address>, traits>(/*this->_socket*/) {
 
 			/*struct addrinfo hints;
 			memset(&hints, 0, sizeof hints);
@@ -146,7 +147,7 @@ class basic_inet4stream : public basic_socketstream<inet4_address, charT, socket
 
 			connect(this->_socket, &this->address, sizeof(struct sockaddr));*/
 
-			this->_socket.connect(inet4_address(host, port));
+			//this->_socket.connect(inet4_address(host, port));
 		}
 
 		//virtual ~basic_inet4stream() {

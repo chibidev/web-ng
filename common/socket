@@ -127,7 +127,7 @@ class basic_socket {
 			//if ((int e = bind(_socket, _local_address->ai_addr, _local_addres->ai_addrlen)) == -1) {
 			
 			int e;
-			if ((e = bind(_socket, static_cast<struct sockaddr*>(_local_address), sizeof(struct sockaddr))) == -1) {
+			if ((e = bind(_socket, static_cast<struct sockaddr*>(*_local_address), sizeof(struct sockaddr))) < 0) {
 				//TODO error handling
 			}
 		}
@@ -149,6 +149,10 @@ class basic_socket {
 
 	protected:
 		basic_socket(const basic_socket&) {
+		}
+
+		basic_socket& operator=(const basic_socket&) {
+			return *this;
 		}
 
 		int _socket;
@@ -215,7 +219,12 @@ class socket : public basic_socket<address_type, socket_type> {
 		}
 		
 	protected:
-		socket(const socket&);
+		socket(const socket&) {
+		}
+
+		socket& operator=(const socket&) {
+			return *this;
+		}
 
 		//struct addrinfo* _local_address;
 		//struct addrinfo* _remote_address;
@@ -251,7 +260,12 @@ class server_socket : public basic_socket<address_type> {
 		}
 
 	protected:
-		server_socket(const server_socket&);
+		server_socket(const server_socket&) {
+		}
+
+		server_socket& operator=(const server_socket&) {
+			return *this;
+		}
 };
 
 }

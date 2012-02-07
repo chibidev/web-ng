@@ -9,10 +9,10 @@ else
 	EXTRA_FLAGS:=-O$(OPT) -march=$(CPU) -fno-rtti -fno-exceptions -DNDEBUG
 endif
 
-CFLAGS=-c -ansi -pedantic -W -Wall -Wextra -Wcast-qual -Wcast-align -Wconversion -Wformat=2 -Wformat-security -fshort-enums -fno-common -Wno-format-y2k -Wpointer-arith -Wredundant-decls -Wshadow -Wwrite-strings $^ -I../common
+CFLAGS=-c -ansi -pedantic -W -Wall -Wextra -Wcast-qual -Wcast-align -Wconversion -Wformat=2 -Wformat-security -fshort-enums -fno-common -Wno-format-y2k -Wpointer-arith -Wredundant-decls -Wshadow -Wwrite-strings $^ -I../common -o $@
 LDFLAGS=$^ -o $@
 
-OBJ:=main.o
+OBJ:=src/main.o
 
 all: bin/main.bin
 
