@@ -48,9 +48,9 @@ class basic_sockaddr {
 
 class inet4_address : public basic_sockaddr {
 	public:
-		static const int family;
+		static const uint16_t family;
 
-		inet4_address(const char* __host, int __port) : basic_sockaddr((struct sockaddr*) &_inet_addr) {
+		inet4_address(const char* __host, uint16_t __port) : basic_sockaddr((struct sockaddr*) &_inet_addr) {
 			_inet_addr.sin_family = family;
 			_inet_addr.sin_port = htons(__port);
 
@@ -78,7 +78,7 @@ class inet4_address : public basic_sockaddr {
 		struct sockaddr_in _inet_addr;
 };
 
-const int inet4_address::family = AF_INET;
+const uint16_t inet4_address::family = AF_INET;
 
 /*
 class inet6_address : public basic_sockaddr {
@@ -119,16 +119,22 @@ class basic_socket {
 			}
 		}
 
+		basic_socket(int __socket) : _socket(__socket), _local_address(0) {
+		}
+
 		virtual ~basic_socket() {
-			if (_socket > 0) close();
+			//if (_socket > 0)
+			close();
 		}
 
 		void bind(const address_type& address) {
 			//if ((int e = bind(_socket, _local_address->ai_addr, _local_addres->ai_addrlen)) == -1) {
+			if (! _local_address) _local_address = new address_type(address);
 			
 			int e;
-			if ((e = bind(_socket, static_cast<struct sockaddr*>(*_local_address), sizeof(struct sockaddr))) < 0) {
+			if ((e = ::bind(_socket, static_cast<struct sockaddr*>(*_local_address), sizeof(struct sockaddr))) < 0) {
 				//TODO error handling
+				::perror("bind error");
 			}
 		}
 
@@ -137,6 +143,8 @@ class basic_socket {
 
 			if ((e = ::close(_socket))) {
 				//TODO error handling
+
+				::perror("close error");
 			}
 
 			if (_local_address) delete _local_address;
@@ -165,6 +173,9 @@ class socket : public basic_socket<address_type, socket_type> {
 		socket() : _remote_address(0) {
 		}
 
+		socket(int __socket) : basic_socket<address_type, socket_type>(__socket) {
+		}
+
 		/*socket(const char* host, const char* proto, bool connect = true) : _socket(-1), _local_address(0), _remote_address(0) {
 			set_address(host, proto);
 			if (connect) connect();
@@ -175,7 +186,7 @@ class socket : public basic_socket<address_type, socket_type> {
 		}
 		
 		void connect(const address_type& address) {
-			_remote_address = new address_type(address);
+			if (! _remote_address) _remote_address = new address_type(address);
 
 			//int e = ::connect(this->_socket, static_cast<struct sockaddr*>(_remote_address), sizeof(struct sockaddr));
 			int e = ::connect(this->_socket, static_cast<struct sockaddr*>(*_remote_address), _remote_address->length());
@@ -202,6 +213,7 @@ class socket : public basic_socket<address_type, socket_type> {
 			int e;
 			if ((e = ::recv(this->_socket, &buffer[0], length, 0)) < 0) {
 				//TODO error handling
+				::perror("recv error");
 			}
 
 			return e;
@@ -213,6 +225,7 @@ class socket : public basic_socket<address_type, socket_type> {
 
 			if ((e = ::send(this->_socket, &buffer[0], length, 0)) < 0) {
 				//TODO error handling
+				::perror("send error");
 			}
 
 			return e;
@@ -243,9 +256,10 @@ class server_socket : public basic_socket<address_type> {
 		}
 
 		int listen(int backlog = 10) {
-			int e = listen(this->_socket, backlog);
+			int e = ::listen(this->_socket, backlog);
 			if (e == -1) {
 				//TODO error handling
+				::perror("listen error");
 			}
 			return e;
 		}
@@ -254,9 +268,10 @@ class server_socket : public basic_socket<address_type> {
 			struct sockaddr_storage client_address;
 			socklen_t address_size = sizeof client_address;
 
-			int client_fd = accept(this->_socket, &client_address, &address_size);
+			int client_fd = ::accept(this->_socket, reinterpret_cast<struct sockaddr*>(&client_address), &address_size);
 
-			socket_type* client_socket = new socket_type();
+			socket_type* client_socket = new socket_type(client_fd);
+			return client_socket;
 		}
 
 	protected:

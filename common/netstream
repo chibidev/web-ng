@@ -13,6 +13,8 @@
 #include <iostream>
 #include <vector>
 
+#include <cstring>
+
 #include "socket"
 
 namespace std {
@@ -21,20 +23,18 @@ template <typename address_type, typename charT, typename socket_type = socket<a
 class net_streambuf : public basic_streambuf<charT, traits> {
 
 	public:
-		explicit net_streambuf(socket_type& s, size_t buffer_size = 4096) : _socket(s) {
+		explicit net_streambuf(socket_type& s, size_t buffer_size = 200) : _inputbuffer(buffer_size, 0), _outputbuffer(buffer_size, 0), _socket(s) {
 			/*_inputbuffer.reserve(buffer_size);
 			_PBeg = _PCur = 0, _PLength = 0;
 			_GBeg = _GCur = _inputbuffer.begin(), _GLength = 0;
 			_Init(&_GBeg, &_GCur, &_GLength, &_PBeg, &_PCur, &_PLength);*/
 
-			_inputbuffer.reserve(buffer_size - 1);
-			_outputbuffer.reserve(buffer_size - 1);
+			//_inputbuffer.reserve(buffer_size);
+			//_outputbuffer.reserve(buffer_size);
 
-			this->setg(0,0,0);
+			this->setg(&_inputbuffer[0] + 4, &_inputbuffer[0] + 4, &_inputbuffer[0] + 4);
 			this->setp(&_outputbuffer[0], &_outputbuffer[0] + buffer_size - 1);
 		}
-
-		
 
 	protected:
 		//virtual int uflow() {
@@ -42,22 +42,41 @@ class net_streambuf : public basic_streambuf<charT, traits> {
 
 		virtual int underflow() {
 			//size_t length = recv(_socket, &_inputbuffer[0], _inputbuffer.capacity(), 0);
-			size_t length = _socket.recv(&_inputbuffer[0], _inputbuffer.capacity());
+			/*size_t length = _socket.recv(&_inputbuffer[0], _inputbuffer.capacity() - 1);
 
-			this->setg(&_inputbuffer[0], &_inputbuffer[0], &_inputbuffer[0] + _inputbuffer.capacity());
+			this->setg(&_inputbuffer[0], &_inputbuffer[0], &_inputbuffer[0] + _inputbuffer.capacity() - 1);
 
 			if (length == 0) {
 				return traits::eof();
 			}
 
-			return traits::not_eof(_inputbuffer[0]);
+			return traits::not_eof(_inputbuffer[0]);*/
+
+
+
+
+			if (this->gptr() < this->egptr()) return *this->gptr();
+
+			int numPutBack = this->gptr() - this->eback();
+			if (numPutBack > 4) numPutBack = 4;
+
+			std::memcpy(&_inputbuffer[0] + (4 - numPutBack), this->gptr() - numPutBack, numPutBack);
+
+			size_t length = _socket.recv(&_inputbuffer[0] + 4, _inputbuffer.capacity() - 4);
+			if (length <= 0) {
+				return traits::eof();
+			}
+
+			this->setg(&_inputbuffer[0] + (4 - numPutBack), &_inputbuffer[0] + 4, &_inputbuffer[0] + 4 + length);
+
+			return *this->gptr();
 		}
 
 		virtual int overflow(int c = traits::eof()) {
 			charT* ibegin = &_outputbuffer[0];
 			charT* iend = this->pptr();
 
-			this->setp(ibegin, ibegin + _outputbuffer.capacity() + 1);
+			this->setp(&_outputbuffer[0], &_outputbuffer[0] + _outputbuffer.capacity() - 1);
 
 			if (!traits::eq_int_type(c, traits::eof())) {
 				*iend++ = traits::to_char_type(c);
@@ -67,7 +86,12 @@ class net_streambuf : public basic_streambuf<charT, traits> {
 
 			//send(_socket, ibegin, length, 0);
 
-			_socket.send(ibegin, length);
+			int e = _socket.send(ibegin, length);
+			if (e <= 0) {
+				//TODO error handling
+				return traits::eof();
+			}
+
 
 			return traits::not_eof(c);
 		}

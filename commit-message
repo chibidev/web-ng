@@ -1,1 +1,16 @@
+Additional bugfixes and a basic echo server
 
+Add a simple implementation of an echo server, and tested framework with
+a single client.
+
+- Fix wrong buffer usage in netstream
+
+- Fix wrong function calls in server_socket
+
+- Change buffer size to 200
+
+- Change types to suppress warnings in socket
+
+- Add check for adjacent bind and connect calls
+
+- Modify makefile to produce clearer output
