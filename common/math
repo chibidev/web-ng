@@ -1,0 +1,56 @@
+#ifndef __MATH__HPP__
+#define __MATH__HPP__
+
+/**
+ * __cplusplus macro is broken in gcc, future versions will fix that
+ */
+
+//#if __cplusplus == c++11
+#if 1
+
+namespace {
+
+constexpr int log(int a, int b) {
+	return (b == 1) ? 0 : log(a, b/a);
+}
+
+// may change first parameter to int, to provide exact same interface as <c++11 version
+
+constexpr double pow(double __number, int __power) {
+	return (__power < 0) ? pow(__number, -__power) : (! __power) ? 1 : __number * pow(__number, __power - 1);
+}
+
+}
+#else
+
+// provide an equal implementation with template metaprogramming
+
+namespace {
+
+template<int a, int b>
+struct __log {
+	enum { value = __log<a, b/a>::value };
+};
+
+template<int a>
+struct __log<a, 1> {
+	enum { value = 0 };
+};
+
+#define log(x, y) __log<x, y>::value
+
+template<int number, unsigned int power>
+struct __pow {
+	enum { value = number * __pow<number, power - 1 };
+};
+
+template<int number>
+struct __pow<number, 0> {
+	enum { value = 1 };
+};
+
+}
+
+#endif
+
+#endif

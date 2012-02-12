@@ -61,6 +61,7 @@ class inet4_address : public basic_sockaddr {
 			_inet_addr.sin_addr = *((struct in_addr*) host->h_addr);
 
 			memset(_inet_addr.sin_zero, 0, sizeof _inet_addr.sin_zero);
+
 		}
 
 		inet4_address(const inet4_address& __address) : basic_sockaddr((struct sockaddr*) &_inet_addr) {
@@ -181,7 +182,7 @@ class socket : public basic_socket<address_type, socket_type> {
 			if (connect) connect();
 		}*/
 
-		socket(const address_type& address) {
+		socket(const address_type& address) : _remote_address(0) {
 			connect(address);
 		}
 		
@@ -189,6 +190,8 @@ class socket : public basic_socket<address_type, socket_type> {
 			if (! _remote_address) _remote_address = new address_type(address);
 
 			//int e = ::connect(this->_socket, static_cast<struct sockaddr*>(_remote_address), sizeof(struct sockaddr));
+
+
 			int e = ::connect(this->_socket, static_cast<struct sockaddr*>(*_remote_address), _remote_address->length());
 
 
