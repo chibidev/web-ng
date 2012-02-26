@@ -2,83 +2,122 @@
 #define __HTTP_HPP__
 
 #include <limits>
+#include <math>
 
 namespace http {
 
-// NOTE
-// This only works in C++11, must provide an alternative way for older standards
-// __cplusplus macro is broken in gcc<4.7
-//
-
-enum header : uint64_t {
-	accept						= 0x00000000000001, // request
-	accept_charset				= 0x00000000000002, // request
-	accept_encoding				= 0x00000000000004, // request
-	accept_language 			= 0x00000000000008, // request
-	accept_ranges 				= 0x00000000000010, // response
-	allow 						= 0x00000000000020, // response
-	authorization 				= 0x00000000000040, // request
-	cache_control 				= 0x00000000000080, // request response
-	connection 					= 0x00000000000100, // request response
-	cookie 						= 0x00000000000200, // request
-	content_disposition			= 0x00000000000400, // response
-	content_encoding 			= 0x00000000000800, // response
-	content_language 			= 0x00000000001000, // response
-	content_length 				= 0x00000000002000, // request response
-	content_location 			= 0x00000000004000, // response
-	content_md5 				= 0x00000000008000, // request response
-	content_range 				= 0x00000000010000, // response
-	content_type 				= 0x00000000020000, // request response
-	date 						= 0x00000000040000, // request response
-	etag 						= 0x00000000080000, // response
-	expect 						= 0x00000000100000, // request
-	expires 					= 0x00000000200000, // response
-	from 						= 0x00000000400000, // request
-	host 						= 0x00000000800000, // request
-	if_match 					= 0x00000001000000, // request
-	if_modified_since 			= 0x00000002000000, // request
-	if_none_match 				= 0x00000004000000, // request
-	if_range 					= 0x00000008000000, // request 
-	if_unmodified_since 		= 0x00000010000000, // request
-	last_modified 				= 0x00000020000000, // response
-	link 						= 0x00000040000000, // response
-	location 					= 0x00000080000000, // response
-	max_forwards 				= 0x00000100000000, // request 
-	p3p 						= 0x00000200000000, // response
-	pragma 						= 0x00000400000000, // request response
-	proxy_authenticate 			= 0x00000800000000, // response
-	proxy_authorization 		= 0x00001000000000, // request
-	range 						= 0x00002000000000, // request
-	referer 					= 0x00004000000000, // request 
-	refresh 					= 0x00008000000000, // response
-	retry_after 				= 0x00010000000000, // response
-	server 						= 0x00020000000000, // response
-	set_cookie 					= 0x00040000000000, // response
-	strict_transport_security 	= 0x00080000000000, // response
-	te 							= 0x00100000000000, // request 
-	trailer						= 0x00200000000000, // response
-	transfer_encoding 			= 0x00400000000000, // response
-	upgrade 					= 0x00800000000000, // request
-	user_agent 					= 0x01000000000000, // request
-	vary 						= 0x02000000000000, // response
-	via 						= 0x04000000000000, // request response
-	warning 					= 0x08000000000000, // request reponse
-	www_authenticate 			= 0x10000000000000, // response
-	all							= 0xFFFFFFFFFFFFFF
+class header {
+	public:
+		static const uint64_t accept						= 0x000000000000001; // request
+		static const uint64_t accept_charset				= 0x000000000000002; // request
+		static const uint64_t accept_encoding				= 0x000000000000004; // request
+		static const uint64_t accept_language 				= 0x000000000000008; // request
+		static const uint64_t accept_ranges 				= 0x000000000000010; // response
+		static const uint64_t allow 						= 0x000000000000020; // response
+		static const uint64_t authorization 				= 0x000000000000040; // request
+		static const uint64_t cache_control 				= 0x000000000000080; // request response
+		static const uint64_t connection 					= 0x000000000000100; // request response
+		static const uint64_t cookie 						= 0x000000000000200; // request
+		static const uint64_t content_disposition			= 0x000000000000400; // response
+		static const uint64_t content_encoding 				= 0x000000000000800; // response
+		static const uint64_t content_language 				= 0x000000000001000; // response
+		static const uint64_t content_length 				= 0x000000000002000; // request response
+		static const uint64_t content_location 				= 0x000000000004000; // response
+		static const uint64_t content_md5 					= 0x000000000008000; // request response
+		static const uint64_t content_range 				= 0x000000000010000; // response
+		static const uint64_t content_type 					= 0x000000000020000; // request response
+		static const uint64_t date 							= 0x000000000040000; // request response
+		static const uint64_t etag 							= 0x000000000080000; // response
+		static const uint64_t expect 						= 0x000000000100000; // request
+		static const uint64_t expires 						= 0x000000000200000; // response
+		static const uint64_t from 							= 0x000000000400000; // request
+		static const uint64_t host 							= 0x000000000800000; // request
+		static const uint64_t if_match 						= 0x000000001000000; // request
+		static const uint64_t if_modified_since 			= 0x000000002000000; // request
+		static const uint64_t if_none_match 				= 0x000000004000000; // request
+		static const uint64_t if_range 						= 0x000000008000000; // request 
+		static const uint64_t if_unmodified_since 			= 0x000000010000000; // request
+		static const uint64_t last_modified 				= 0x000000020000000; // response
+		static const uint64_t link 							= 0x000000040000000; // response
+		static const uint64_t location 						= 0x000000080000000; // response
+		static const uint64_t max_forwards 					= 0x000000100000000; // request 
+		static const uint64_t p3p 							= 0x000000200000000; // response
+		static const uint64_t pragma 						= 0x000000400000000; // request response
+		static const uint64_t proxy_authenticate 			= 0x000000800000000; // response
+		static const uint64_t proxy_authorization 			= 0x000001000000000; // request
+		static const uint64_t range 						= 0x000002000000000; // request
+		static const uint64_t referer 						= 0x000004000000000; // request 
+		static const uint64_t refresh 						= 0x000008000000000; // response
+		static const uint64_t retry_after 					= 0x000010000000000; // response
+		static const uint64_t server 						= 0x000020000000000; // response
+		static const uint64_t set_cookie 					= 0x000040000000000; // response
+		static const uint64_t strict_transport_security		= 0x000080000000000; // response
+		static const uint64_t te 							= 0x000100000000000; // request 
+		static const uint64_t trailer						= 0x000200000000000; // response
+		static const uint64_t transfer_encoding 			= 0x000400000000000; // response
+		static const uint64_t upgrade 						= 0x000800000000000; // request
+		static const uint64_t user_agent 					= 0x001000000000000; // request
+		static const uint64_t vary 							= 0x002000000000000; // response
+		static const uint64_t via 							= 0x004000000000000; // request response
+		static const uint64_t warning 						= 0x008000000000000; // request reponse
+		static const uint64_t www_authenticate	 			= 0x010000000000000; // response
+		static const uint64_t all							= 0x0FFFFFFFFFFFFFF;
 };
+
+class options {
+	public:
+		static const uint64_t strict						= 0x100000000000000;
+};
+
 
 class request {
 };
 
 class response {
-};
-
-class parser {
-	public:	
-		parser(std::istream& __http_stream, header __flags = header::all) : _http_stream(__http_stream), _flags(__flags) {
+	public:
+		response() : _values(42) {
 		}
 
+		template<header opt>
+		void set(const std::string& value) {
+			_values[log(2, opt)] = value;
+		}
+
+		template<header opt>
+		const std::string& get() {
+			return _values[log(2, opt)];
+		}
+
+	protected:
+		std::vector<std::string> _values;
+
+};
+
+
+// If strict parsing is enabled, compare the incoming chars to str
+// If parsing is not strict, discard the characters
+#define EXPECT(num, str) \
+if (flags & options::strict) { \
+	if (expect_char<num>(str)) break; \
+} else { \
+	_http_stream.ignore(num); \
+}
+
+
+// Leaf version of EXPECT. If we are at a leaf in parsing tree, discarding upon
+// lazy parsing is not required.
+#define LEXPECT(num, str) \
+if (flags & options::strict) { \
+	if (expect_char<num>(str)) break; \
+}
+
+template<uint64_t flags = header::all>
+class parser {
+	public:
 		
+		parser(std::istream& __http_stream) : _http_stream(__http_stream) {
+		}
+				
 		//request
 		void parse_request() {
 			int c = _http_stream.get();
@@ -87,10 +126,21 @@ class parser {
 					c = _http_stream.get();
 					switch (c) {
 						case 'c':
-							_http_stream.ignore(4);
+							/*
+							if (flags & options::strict) {
+								if (expect_char<4>("cept")) break;
+							} else {
+								_http_stream.ignore(4);
+							}
+							*/
+
+							EXPECT(4, "cept");
+
 							c = _http_stream.get();
 							switch(c) {
 								case ':': // Accept
+									drop();
+									break;
 								case '-':
 									c = _http_stream.get();
 									switch (c) {
@@ -100,6 +150,7 @@ class parser {
 										default:
 											drop();
 									}
+									break;
 								default:
 									drop();
 							}
@@ -122,8 +173,12 @@ class parser {
 									c = _http_stream.get();
 									switch (c) {
 										case 'n': // Connection
+											drop();
+											break;
 										case 't':
-											_http_stream.ignore(4);
+											//_http_stream.ignore(4);
+											EXPECT(4, "ent-")
+
 											c = _http_stream.get();
 											switch (c) {
 												case 'L': // Content-Length
@@ -132,13 +187,16 @@ class parser {
 												default:
 													drop();
 											}
+											break;
 										default:
 											drop();
 									}
+									break;
 								case 'o': // Cookie
 								default:
 									drop();
 							}
+							break;
 						default:
 							drop();
 					}
@@ -150,7 +208,8 @@ class parser {
 					drop();
 					break;
 				case 'I':
-					_http_stream.ignore(2);
+					//_http_stream.ignore(2);
+					EXPECT(2, "f-")
 					c = _http_stream.get();
 					switch (c) {
 						case 'M':
@@ -173,7 +232,8 @@ class parser {
 					drop();
 					break;
 				case 'P':
-					_http_stream.ignore(1);
+					//_http_stream.ignore(1);
+					EXPECT(1, "r")
 					c = _http_stream.get();
 					switch (c) {
 						case 'a': // Pragma
@@ -210,8 +270,7 @@ class parser {
 			}
 		}
 		
-		//response
-		void parse_response() {
+		response parse_response() {
 			// TODO
 			// 
 			// check RFC specification whether to provide case insensitive syntax or not
@@ -251,14 +310,18 @@ class parser {
 								drop();
 								break;
 							case 'o':
-								_http_stream.ignore(1);
+								//_http_stream.ignore(1);
+								EXPECT(1, "n")
+
 								c = _http_stream.get();
 								switch (c) {
 									case 'n': // Connection
 										drop();
 										break;
 									case 't':
-										_http_stream.ignore(4);
+										//_http_stream.ignore(4);
+										EXPECT(4, "ent-");
+
 										c = _http_stream.get();
 										switch (c) {
 											case 'D': // Content-Disposition
@@ -331,7 +394,9 @@ class parser {
 						}
 						break;
 					case 'R':
-						_http_stream.ignore(1);
+						//_http_stream.ignore(1);
+						EXPECT(1, "e")
+
 						c = _http_stream.get();
 						switch (c) {
 							case 'f': // Refresh
@@ -358,17 +423,21 @@ class parser {
 						}
 						break;
 					case 'T':
-						_http_stream.ignore(2);
+						//_http_stream.ignore(2);
+						EXPECT(2, "ra")
+
 						c = _http_stream.get();
 						switch (c) {
 							case 'i': // Trailer
 								drop();
 								break;
 							case 'n': // Transfer-Encoding
-								if (_flags & header::transfer_encoding) {
-									std::cout << get_value() << std::endl;
+								if (flags & header::transfer_encoding) {
+									r.set<header::transfer_encoding>(get_value());
 									break;
 								}
+								drop();
+								break;
 							default:
 								drop();
 						}
@@ -391,6 +460,8 @@ class parser {
 								drop();
 						}
 						break;
+					case '\r':
+						return r;
 					default:
 						drop();
 				}
@@ -398,7 +469,9 @@ class parser {
 				// TODO
 				// X-Frame-Options, X-XSS-Protection, X-Content-Type-Options, X-Forwarded-Proto, X-Powered-By, X-UA-Compatible
 
-			} while (c != '\r');
+			} while (_http_stream.good());
+
+			return r;
 		}
 
 	protected:
@@ -417,11 +490,81 @@ class parser {
 		}
 
 
+
+		// problem: if parsing is not strict, then an unnecessary ignore is in the function (get_value skips to the appropriate value, no need to use ignore in this function).
+		// but, if parsing is not strict, and we are not in a leaf in parsing tree, then the ignore is needed
+		template<unsigned int n>
+		int expect_char(const char* expected) {
+			unsigned int i = 0;
+			char c;
+
+			do {
+				c = static_cast<char>(_http_stream.get());
+				if (c != *expected) {
+					drop();
+					return -1;
+				}
+				++expected;
+			} while (++i < n);
+
+			return 0;
+		}
+
+		// Partial function specialization is not working!
+		/*template<>
+		int expect_char<1>(const char* expected) {
+			char c = _http_stream.get();
+			if (c != *expected) {
+				drop();
+				return -1;
+			}
+
+			return 0;
+
+		}*/
+
 		std::istream& _http_stream;
 		header _flags;
 
 };
 
+
+/*
+class protocol_interpreter {
+	public:
+		void send() {
+			std::socket<std::inet4_address> sock(std::inet4_address(_options[1], 80));
+			std::inet4stream stream(sock);
+
+			http_parser<> parser(stream);
+
+			stream << "GET " << _options[2] << " HTTP/1.1\r\n";
+			stream << "Host: " << _options[1] << "\r\n";
+			stream << "Accept-Encoding: chunked\r\n"; // Handle only chunked encoding for the time being
+			stream << "Connection: close\r\n"; // persistent connection is not available atm
+			stream << "\r\n";
+
+			http::response resp = parser.parse_response();
+
+			std::stringstream message_stream;
+
+			if (resp.get<http::header::transfer_encoding>() == "chunked") {
+				int chunk;
+				do {
+					stream >> std::hex >> chunk;
+					std::string ch(chunk, '\0');
+					stream.read(&ch[0], chunk);
+
+					message_stream << ch;
+				} while (chunk > 0 && stream.good());
+			}
+
+			return message_stream;
+		}
+	protected:
+		std::vector<std::string> _options;
+};
+*/
 }
 
 #endif

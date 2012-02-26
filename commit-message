@@ -1,9 +1,11 @@
-Minor improvements and the RSS compatibility layer.
+Improve existing libraries, add a simple xml library for easy and lazy
+parsing.
 
-- Fix a bug on socket::connect (pointer was not initialized)
+Improvements to http lib:
+- Improve old-standard compatibility with http::header, http::option
+  (remove enum classes)
+- Improve response parsing
+- Add parse_response return value
 
-- Add basic implementation of http::parser
-
-- Add some compile-time computations in header math
-
-- Add basic structure of the RSS compatibility layer
+Introduce basic sax parser, basic dom parser and an xml compiler.
+Add xml-test sample code.

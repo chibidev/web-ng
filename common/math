@@ -10,7 +10,7 @@
 
 namespace {
 
-constexpr int log(int a, int b) {
+constexpr int log(uint64_t a, uint64_t b) {
 	return (b == 1) ? 0 : log(a, b/a);
 }
 
