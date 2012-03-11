@@ -2,7 +2,7 @@
 #define __HTTP_HPP__
 
 #include <limits>
-#include <math>
+#include "../math"
 
 namespace http {
 
@@ -66,7 +66,7 @@ class header {
 
 class options {
 	public:
-		static const uint64_t strict						= 0x100000000000000;
+		static const uint64_t strict						= 0x100000000000000u;
 };
 
 
@@ -78,12 +78,12 @@ class response {
 		response() : _values(42) {
 		}
 
-		template<header opt>
+		template<uint64_t opt>
 		void set(const std::string& value) {
 			_values[log(2, opt)] = value;
 		}
 
-		template<header opt>
+		template<uint64_t opt>
 		const std::string& get() {
 			return _values[log(2, opt)];
 		}
