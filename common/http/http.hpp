@@ -4,10 +4,13 @@
 #include <limits>
 #include <math>
 
+#include <streams/filters.hpp>
+
 namespace http {
 
 class header {
 	public:
+		static const uint64_t none							= 0x0;
 		static const uint64_t accept						= 0x000000000000001; // request
 		static const uint64_t accept_charset				= 0x000000000000002; // request
 		static const uint64_t accept_encoding				= 0x000000000000004; // request
@@ -69,7 +72,7 @@ class options {
 		static const uint64_t strict						= 0x100000000000000;
 };
 
-
+/*
 class request {
 };
 
@@ -78,12 +81,12 @@ class response {
 		response() : _values(42) {
 		}
 
-		template<header opt>
+		template<uint64_t opt>
 		void set(const std::string& value) {
 			_values[log(2, opt)] = value;
 		}
 
-		template<header opt>
+		template<uint64_t opt>
 		const std::string& get() {
 			return _values[log(2, opt)];
 		}
@@ -92,7 +95,7 @@ class response {
 		std::vector<std::string> _values;
 
 };
-
+*/
 
 // If strict parsing is enabled, compare the incoming chars to str
 // If parsing is not strict, discard the characters
@@ -100,7 +103,7 @@ class response {
 if (flags & options::strict) { \
 	if (expect_char<num>(str)) break; \
 } else { \
-	_http_stream.ignore(num); \
+	ignore(num); \
 }
 
 
@@ -111,8 +114,10 @@ if (flags & options::strict) { \
 	if (expect_char<num>(str)) break; \
 }
 
+
+/*
 template<uint64_t flags = header::all>
-class parser {
+class basic_http_server_parser {
 	public:
 		
 		parser(std::istream& __http_stream) : _http_stream(__http_stream) {
@@ -126,14 +131,6 @@ class parser {
 					c = _http_stream.get();
 					switch (c) {
 						case 'c':
-							/*
-							if (flags & options::strict) {
-								if (expect_char<4>("cept")) break;
-							} else {
-								_http_stream.ignore(4);
-							}
-							*/
-
 							EXPECT(4, "cept");
 
 							c = _http_stream.get();
@@ -269,32 +266,71 @@ class parser {
 					drop();
 			}
 		}
-		
-		response parse_response() {
+
+		std::istream& _http_stream;
+};
+*/
+
+
+
+
+
+
+template<typename charT, typename traits = std::char_traits<charT>, uint64_t flags = header::all>
+class basic_client_filter : public std::basic_filter_streambuf<charT, traits> {
+	public:
+		//using int_type = traits::int_type;
+		typedef typename traits::int_type int_type;
+
+		basic_client_filter() : pheader(true) {
+		}
+
+	protected:
+		int_type underflow() {
+			if (pheader) parse_header();
+
+			return std::basic_filter_streambuf<charT, traits>::underflow();
+		}
+
+		int_type uflow() {
+			if (pheader) parse_header();
+
+			return std::basic_filter_streambuf<charT, traits>::uflow();
+		}
+
+		//int_type overflow(int_type c) {
+		//}
+
+		void parse_header() {
 			// TODO
 			// 
 			// check RFC specification whether to provide case insensitive syntax or not
 			//
 
 
-			response r;
-
 			std::string h; // reponse header
-			getline(_http_stream, h, '\r');
-			_http_stream.ignore(1);
+			//getline(_http_stream, h, '\r');
+			int c = this->_delegate->sbumpc();
+			while (c != '\r') {
+				h.push_back(traits::to_char_type(c));
+				c = this->_delegate->sbumpc();
+			}
 
-			std::cout << h << std::endl;
+			//_http_stream.ignore(1);
+			this->_delegate->sbumpc();
+
+			//std::cout << h << std::endl;
 
 			//_http_stream.ignore(std::numeric_limits<int>::max(), '\n'); // response header
 
-			int c;
-
 			do {
-				c = _http_stream.get();
+				//c = _http_stream.get();
+				c = this->_delegate->sbumpc();
 					
 				switch (c) {
 					case 'A':
-						c = _http_stream.get();
+						//c = _http_stream.get();
+						c = this->_delegate->sbumpc();
 						switch (c) {
 							case 'c': // Accept-Ranges
 							case 'g': // Age
@@ -304,7 +340,8 @@ class parser {
 						}
 						break;
 					case 'C':
-						c = _http_stream.get();
+						//c = _http_stream.get();
+						c = this->_delegate->sbumpc();
 						switch (c) {
 							case 'a': // Cache-Control
 								drop();
@@ -313,7 +350,8 @@ class parser {
 								//_http_stream.ignore(1);
 								EXPECT(1, "n")
 
-								c = _http_stream.get();
+								//c = _http_stream.get();
+								c = this->_delegate->sbumpc();
 								switch (c) {
 									case 'n': // Connection
 										drop();
@@ -322,14 +360,16 @@ class parser {
 										//_http_stream.ignore(4);
 										EXPECT(4, "ent-");
 
-										c = _http_stream.get();
+										//c = _http_stream.get();
+										c = this->_delegate->sbumpc();
 										switch (c) {
 											case 'D': // Content-Disposition
 											case 'E': // Content-Encoding
 												drop();
 												break;
 											case 'L':
-												c = _http_stream.get();
+												//c = _http_stream.get();
+												c = this->_delegate->sbumpc();
 												switch (c) {
 													case 'e': // Content-Length
 													case 'o': // Content-Location
@@ -356,7 +396,8 @@ class parser {
 						drop();
 						break;
 					case 'E':
-						c = _http_stream.get();
+						//c = _http_stream.get();
+						c = this->_delegate->sbumpc();
 						switch (c) {
 							case 'T': // ETag
 							case 'x': // Expires
@@ -365,7 +406,8 @@ class parser {
 						}
 						break;
 					case 'L':
-						c = _http_stream.get();
+						//c = _http_stream.get();
+						c = this->_delegate->sbumpc();
 						switch (c) {
 							case 'a': // Last-Modified
 							case 'i': // Link
@@ -375,13 +417,15 @@ class parser {
 						}
 						break;
 					case 'P':
-						c = _http_stream.get();
+						//c = _http_stream.get();
+						c = this->_delegate->sbumpc();
 						switch (c) {
 							case '3': // P3P
 								drop();
 								break;
 							case 'r':
-								c = _http_stream.get();
+								//c = _http_stream.get();
+								c = this->_delegate->sbumpc();
 								switch (c) {
 									case 'a': // Pragma
 									case 'o': // Proxy-Authenticate
@@ -397,7 +441,8 @@ class parser {
 						//_http_stream.ignore(1);
 						EXPECT(1, "e")
 
-						c = _http_stream.get();
+						//c = _http_stream.get();
+						c = this->_delegate->sbumpc();
 						switch (c) {
 							case 'f': // Refresh
 							case 't': // Retry-After
@@ -406,10 +451,12 @@ class parser {
 						}
 						break;
 					case 'S':
-						c = _http_stream.get();
+						//c = _http_stream.get();
+						c = this->_delegate->sbumpc();
 						switch (c) {
 							case 'e':
-								c = _http_stream.get();
+								//c = _http_stream.get();
+								c = this->_delegate->sbumpc();
 								switch (c) {
 									case 'r': // Server
 									case 't': // Set-Cookie
@@ -426,14 +473,14 @@ class parser {
 						//_http_stream.ignore(2);
 						EXPECT(2, "ra")
 
-						c = _http_stream.get();
+						//c = _http_stream.get();
+						c = this->_delegate->sbumpc();
 						switch (c) {
 							case 'i': // Trailer
 								drop();
 								break;
 							case 'n': // Transfer-Encoding
 								if (flags & header::transfer_encoding) {
-									r.set<header::transfer_encoding>(get_value());
 									break;
 								}
 								drop();
@@ -443,7 +490,8 @@ class parser {
 						}
 						break;
 					case 'V':
-						c = _http_stream.get();
+						//c = _http_stream.get();
+						c = this->_delegate->sbumpc();
 						switch (c) {
 							case 'a': // Vary
 							case 'i': // Via
@@ -452,7 +500,8 @@ class parser {
 						}
 						break;
 					case 'W':
-						c = _http_stream.get();
+						//c = _http_stream.get();
+						c = this->_delegate->sbumpc();
 						switch (c) {
 							case 'a': // Warning
 							case 'W': // WWW-Authenticate
@@ -461,7 +510,8 @@ class parser {
 						}
 						break;
 					case '\r':
-						return r;
+						pheader = false;
+						return;
 					default:
 						drop();
 				}
@@ -469,13 +519,10 @@ class parser {
 				// TODO
 				// X-Frame-Options, X-XSS-Protection, X-Content-Type-Options, X-Forwarded-Proto, X-Powered-By, X-UA-Compatible
 
-			} while (_http_stream.good());
-
-			return r;
+			} while (this->_delegate->sgetc() != EOF);
 		}
 
-	protected:
-		std::string get_value() {
+		/*std::string get_value() {
 			_http_stream.ignore(std::numeric_limits<int>::max(), ' ');
 
 			std::string ret;
@@ -483,12 +530,20 @@ class parser {
 
 			_http_stream.ignore(1); // remove \n
 			return ret;
+		}*/
+
+		void ignore(int_type num, int_type delimiter = EOF) {
+			int_type i = 0;
+			while (i++ < num && this->_delegate->sbumpc() != delimiter);
 		}
 
 		void drop() {
-			_http_stream.ignore(std::numeric_limits<int>::max(), '\n');
+			//_http_stream.ignore(std::numeric_limits<int>::max(), '\n');
+			while (this->_delegate->sbumpc() != '\n');
 		}
 
+
+		bool pheader;
 
 
 		// problem: if parsing is not strict, then an unnecessary ignore is in the function (get_value skips to the appropriate value, no need to use ignore in this function).
@@ -499,7 +554,7 @@ class parser {
 			char c;
 
 			do {
-				c = static_cast<char>(_http_stream.get());
+				c = static_cast<char>(this->_delegate->sbumpc());
 				if (c != *expected) {
 					drop();
 					return -1;
@@ -523,48 +578,18 @@ class parser {
 
 		}*/
 
-		std::istream& _http_stream;
-		header _flags;
-
 };
 
 
-/*
-class protocol_interpreter {
-	public:
-		void send() {
-			std::socket<std::inet4_address> sock(std::inet4_address(_options[1], 80));
-			std::inet4stream stream(sock);
+//template<uint64_t flags>
+//using clientstream = std::basic_filter_stream<char, std::char_traits<char>, basic_client_filter<char, std::char_traits<char>, flags> >;
 
-			http_parser<> parser(stream);
+typedef std::basic_filter_stream<char, std::char_traits<char>, basic_client_filter<char> > clientstream;
 
-			stream << "GET " << _options[2] << " HTTP/1.1\r\n";
-			stream << "Host: " << _options[1] << "\r\n";
-			stream << "Accept-Encoding: chunked\r\n"; // Handle only chunked encoding for the time being
-			stream << "Connection: close\r\n"; // persistent connection is not available atm
-			stream << "\r\n";
+//template<uint64_t flags>
+//using wclientstream = std::basic_filter_stream<wchar_t, std::char_traits<wchar_t>, basic_client_filter<wchar_t, std::char_traits<wchar_t>, flags> >;
 
-			http::response resp = parser.parse_response();
 
-			std::stringstream message_stream;
-
-			if (resp.get<http::header::transfer_encoding>() == "chunked") {
-				int chunk;
-				do {
-					stream >> std::hex >> chunk;
-					std::string ch(chunk, '\0');
-					stream.read(&ch[0], chunk);
-
-					message_stream << ch;
-				} while (chunk > 0 && stream.good());
-			}
-
-			return message_stream;
-		}
-	protected:
-		std::vector<std::string> _options;
-};
-*/
-}
+} // namespace http
 
 #endif

@@ -120,7 +120,7 @@ class basic_parser {
 						{
 							std::string tmp;
 							getline(stream, tmp, '>');
-							std::cout << c << tmp << std::endl;
+							//std::cout << c << tmp << std::endl;
 						}
 						//stream.ignore(numeric_limits<int>::max(), '>');
 						_next = state::text;

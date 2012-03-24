@@ -1,0 +1,17 @@
+Library improvements and basic RSS parsing.
+
+Introducing stream filters and streamstack for easier stream management.
+- Filters operate on streams (or other filters), and produce modified
+  input/output.
+- A streamstack is built upon an endpoint (a stream communicating with
+  hardware buffer), and accepts filters as upper level handlers.
+  Streamstack is an iostream, that delegates message to lower levels.
+
+Introducing HTTP client side interpreter (header parser) as a filter.
+
+Introducing more efficient RSS parser, based on XML parser, and a basic
+RSS library.
+
+Modifying RSS reader, to use filters and the new parser.
+
+Refactoring code and filesystem, hiding commit-message.
